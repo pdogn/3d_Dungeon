@@ -19,21 +19,32 @@ public class Movement : MonoBehaviour
     Animator anim;
     float horInput, verInput;
 
-    state crrState;
-    bool stateComplete;
+    [SerializeField] state crrState;
+    public bool stateComplete;
 
+    public bool attacking;
+    float timeToAttack = .5f;
+    float t = 0f;
     // Start is called before the firs frame update
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         anim = GetComponent<Animator>();
+        crrState = state.idle;
     }
 
     // Update is called once per frame
     void Update()
     {
         Move();
-        Ani();
+        //Ani();
+        //checkAttack();
+        if (stateComplete)
+        {
+            selectState();
+        }
+        UpdateState();
+        checkAttack();
     }
 
     void Move()
@@ -41,7 +52,7 @@ public class Movement : MonoBehaviour
         horInput = Input.GetAxisRaw("Horizontal") * moveSpeed;
         verInput = Input.GetAxisRaw("Vertical") * moveSpeed;
 
-        if(horInput != 0 || verInput != 0)
+        if((horInput != 0 || verInput != 0) && attacking == false)
         {
             Vector3 camForward = cam.forward;
             Vector3 camRight = cam.right;
@@ -89,49 +100,89 @@ public class Movement : MonoBehaviour
         {
             case state.idle:
                 //do idle
-                startIdle();
+                updateIdle();
                 break;
             case state.run:
                 //do run
-                startRun();
+                updateRun();
                 break;
             case state.attack:
                 //do attack
-                startAttack();
+                updateAttack();
                 break;
         }
     }
 
     void selectState()
     {
-        if (stateComplete == false) return;
-
-        if (horInput != 0 || verInput != 0)
+        stateComplete = false;
+        if (attacking == false)
         {
-            crrState = state.run;
+            if ((horInput != 0 || verInput != 0))
+            {
+                crrState = state.run;
+                startRun();
+            }
+            else
+            {
+                crrState = state.idle;
+                startIdle();
+            }
         }
-        else
-        {
-            crrState = state.idle;
-        }
 
-        if (Input.GetMouseButtonDown(0))
+        if (attacking)
         {
-            Debug.LogError("attack");
             crrState = state.attack;
+            startAttack();
         }
     }
 
     void startIdle()
     {
-        anim.Play("idle");
+        anim.Play("Idle01");
+    }
+    void updateIdle()
+    {
+        if ((horInput != 0 || verInput != 0))
+        {
+            stateComplete = true;
+        }
     }
     void startRun()
     {
-        anim.Play("run");
+        anim.Play("BattleRunForward");
     }
+    void updateRun()
+    {
+        if ((horInput == 0 && verInput == 0))
+        {
+            stateComplete = true;
+        }
+    }
+    
     void startAttack()
     {
-        anim.Play("attack");
+        Debug.LogError("attack");
+        anim.Play("Attack01");
+    }
+    void updateAttack()
+    {
+        Debug.LogError("attacking");
+        t += Time.deltaTime;
+        if(t>= timeToAttack)
+        {
+            attacking = false;
+            t = 0f;
+            stateComplete = true;
+        }
+    }
+
+    void checkAttack()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            attacking = true;
+            stateComplete = true;
+        }
     }
 }
